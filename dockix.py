@@ -22,7 +22,7 @@ class Docker(Manager):
         return dockerAPI.info()
 
 
-class RunningContainers(Manager):
+class Containers_Running(Manager):
 
     resource_fields = {
         "Args": { "description": "Arguments to the command executed by this container",
@@ -49,28 +49,28 @@ class RunningContainers(Manager):
         }
 
     def list_resource(self):
-        return [c["Id"] for c in dockerAPI.containers()]
+        return [c["Id"][:12] for c in dockerAPI.containers()]
 
     def get_resource(self, cid):
         return dockerAPI.inspect_container(cid)
 
 # Disabled for now (regression in Docker, this command is too slow!)
-#class AllContainers(RunningContainers):
+#class Containers_All(Containers_Running):
 #
 #    def list_resource(self):
 #        return [c["Id"] for c in dockerAPI.containers(all=True)]
 
-class TaggedImages(Manager):
+class Images_Tagged(Manager):
 
     resource_fields = {
-        'container': { "description": "?",
-                       "example": 'dc33a49caf5098f6eef7...'},
-        "parent": { "description": "parent image",
-                    "example": "319419489..." },
+        #'container': { "description": "?",
+        #               "example": 'dc33a49caf5098f6eef7...'},
+        #"parent": { "description": "parent image",
+        #            "example": "319419489..." },
         "created": { "description": "creation date",
                      "example": '2013-11-14T00:17:33.036474517Z'},
-        'config': { "description": "config bundled in the image",
-                              "example": {u'Env': [u'HOME=/', u'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'], u'Hostname': u'dc33a49caf50', u'Dns': None, u'Entrypoint': None, u'PortSpecs': None, u'Memory': 0, u'Privileged': False, u'OpenStdin': False, u'User': u'', u'AttachStderr': False, u'AttachStdout': False, u'NetworkDisabled': False, u'StdinOnce': False, u'Cmd': [u'/bin/sh', u'-c', u'#(nop) ADD busybox in /bin/busybox'], u'WorkingDir': u'', u'AttachStdin': False, u'Volumes': None, u'MemorySwap': 0, u'VolumesFrom': u'', u'Tty': False, u'CpuShares': 0, u'Domainname': u'', u'Image': u'511136ea3c5a64f264b78b5433614aec563103b4d4702f3ba7d4d2698e22c158', u'ExposedPorts': None}},
+        #"config": { "description": "config bundled in the image",
+        #                      "example": {u'Env': [u'HOME=/', u'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'], u'Hostname': u'dc33a49caf50', u'Dns': None, u'Entrypoint': None, u'PortSpecs': None, u'Memory': 0, u'Privileged': False, u'OpenStdin': False, u'User': u'', u'AttachStderr': False, u'AttachStdout': False, u'NetworkDisabled': False, u'StdinOnce': False, u'Cmd': [u'/bin/sh', u'-c', u'#(nop) ADD busybox in /bin/busybox'], u'WorkingDir': u'', u'AttachStdin': False, u'Volumes': None, u'MemorySwap': 0, u'VolumesFrom': u'', u'Tty': False, u'CpuShares': 0, u'Domainname': u'', u'Image': u'511136ea3c5a64f264b78b5433614aec563103b4d4702f3ba7d4d2698e22c158', u'ExposedPorts': None}},
         'architecture': { "description": "arch",
                           "example": 'x86_64'},
         "id": { "description": "image id",
@@ -80,7 +80,7 @@ class TaggedImages(Manager):
         }
 
     def list_resource(self):
-        return ["{Repository}:{Tag}:{Id}".format(**i)
+        return [":".join([i["Repository"], i["Tag"], i["Id"][:12]])
                 for i in dockerAPI.images()
                 if "Tag" in i and "Repository" in i]
 
@@ -88,7 +88,7 @@ class TaggedImages(Manager):
         iid = repo_tag_id.split(":")[2]
         return dockerAPI.inspect_image(iid)
 
-class AllImages(TaggedImages):
+class Images_All(Images_Tagged):
 
     def list_resource(self):
         return [i["Id"] for i in dockerAPI.images()]
