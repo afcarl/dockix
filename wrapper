@@ -4,4 +4,8 @@
 	echo "Try starting the container with -v /var/run:/hvr ?"
 }
 ln -s /hvr/docker.sock /var/run/docker.sock
-exec napixd noauth
+if pip freeze | grep -q ^gevent
+then GEVENT=gevent
+else GEVENT=nogevent
+fi
+exec napixd noauth $GEVENT
