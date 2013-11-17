@@ -9,10 +9,28 @@ dockerAPI = docker.Client(base_url="unix://var/run/docker.sock", version="1.6", 
 class Docker(Manager):
 
     resource_fields = {
-        "Containers": {"description": "number of containers",
-                       "example": 42},
-        "Images": {"description": "number of images",
-                   "example": 69},
+        "Containers": { "description": "number of containers",
+                        "example": 42},
+        "Images": { "description": "number of images",
+                    "example": 69},
+        "KernelVersion": { "description": "",
+                           "example": "3.8.0-29-generic"},
+        "NFd": { "description": "number of file descriptors used by Docker",
+                 "example": 42 },
+        "MemoryLimit": { "description": "indicates if the Docker host supports memory limits",
+                         "example": True },
+        "IndexServerAddress": { "description": "URL of the index used by the Docker host",
+                                "example": "https://index.docker.io/v1/" },
+        "NGoroutines": { "description": "number of goroutines currently in use by the runtime",
+                         "example": 150 },
+        "IPv4Forwarding": {"description": "indicates if this Docker host has IP forwarding enabled",
+                           "example": True },
+        "LXCVersion": { "description": "version of the LXC userland tools used by this Docker host",
+                        "example": "0.7.5" },
+        "Debug": { "description": "is debugging enabled on this host?",
+                   "example": False },
+        "NEventsListener": { "description": "number of listeners subscribed to event sources",
+                             "example": 8 },
         }
 
     def list_resource(self):
