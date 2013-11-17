@@ -1,0 +1,7 @@
+#!/bin/sh
+[ -S /hvr/docker.sock ] || {
+	echo "WARNING: /hvr/docker.sock not found."
+	echo "Try starting the container with -v /var/run:/hvr ?"
+}
+ln -s /hvr/docker.sock /var/run/docker.sock
+exec napixd noauth
