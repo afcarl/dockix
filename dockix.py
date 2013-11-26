@@ -6,32 +6,23 @@ import docker
 dockerAPI = docker.Client(base_url="unix://var/run/docker.sock", version="1.6", timeout=60)
 
 
-class Docker(Manager):
+class Docker_Info(Manager):
 
-    resource_fields = {
-        "Containers": { "description": "number of containers",
-                        "example": 42},
-        "Images": { "description": "number of images",
-                    "example": 69},
-        "KernelVersion": { "description": "",
-                           "example": "3.8.0-29-generic"},
-        "NFd": { "description": "number of file descriptors used by Docker",
-                 "example": 42 },
-        "MemoryLimit": { "description": "indicates if the Docker host supports memory limits",
-                         "example": True },
-        "IndexServerAddress": { "description": "URL of the index used by the Docker host",
-                                "example": "https://index.docker.io/v1/" },
-        "NGoroutines": { "description": "number of goroutines currently in use by the runtime",
-                         "example": 150 },
-        "IPv4Forwarding": {"description": "indicates if this Docker host has IP forwarding enabled",
-                           "example": True },
-        "LXCVersion": { "description": "version of the LXC userland tools used by this Docker host",
-                        "example": "0.7.5" },
-        "Debug": { "description": "is debugging enabled on this host?",
-                   "example": False },
-        "NEventsListener": { "description": "number of listeners subscribed to event sources",
-                             "example": 8 },
-        }
+    # We only have a bunch of read-only fields here.
+    resource_fields = { field: {"description": field, "computed": True}
+                        for field in [ "Containers",
+                                       "Images",
+                                       "KernelVersion",
+                                       "NFd",
+                                       "MemoryLimit",
+                                       "IndexServerAddress",
+                                       "NGoroutines",
+                                       "IPv4Forwarding",
+                                       "LXCVersion",
+                                       "Debug",
+                                       "NEventsListener",
+                                       ]
+                        }
 
     def list_resource(self):
         return ["info"]
@@ -40,29 +31,83 @@ class Docker(Manager):
         return dockerAPI.info()
 
 
+class Docker_Version(Manager):
+
+    resource_fields = { field: {"description": field, "computed": True}
+                        for field in [ "Version",
+                                       "GitCommit",
+                                       "GoVersion",
+                                       ]
+                        }
+
+    def list_resource(self):
+        return ["version"]
+
+    def get_resource(self, dummy):
+        return dockerAPI.version()
+
+
 class Containers_Running(Manager):
 
     resource_fields = {
         "Args": { "description": "Arguments to the command executed by this container",
-                     "example": "hello world" },
+                  "editable": False,
+                  "example": "hello world" },
+        "Config": { "description": "Runtime configuration of the container",
+                    "editable": False,
+                    "example": { 'Env': ['VAR=value' ],
+                                 'Hostname': 'mylittlecontainer',
+                                 'Dns': None,
+                                 'Entrypoint': None,
+                                 'PortSpecs': None,
+                                 'Memory': 0,
+                                 'OpenStdin': False,
+                                 'User': 'root',
+                                 'AttachStderr': True,
+                                 'AttachStdout': True,
+                                 'NetworkDisabled': False,
+                                 'StdinOnce': False,
+                                 'Cmd': ['/bin/sh',
+                                         '-c',
+                                         'python /gunsub.py'],
+                                 'WorkingDir': '',
+                                 'AttachStdin': False,
+                                 'Volumes': None,
+                                 'MemorySwap': 0,
+                                 'VolumesFrom': '',
+                                 'Tty': False,
+                                 'CpuShares': 0,
+                                 'Domainname': '',
+                                 'Image': 'jpetazzo/busybox:latest',
+                                 'ExposedPorts': None
+                                 }
+                    },
         "Created": { "description": "Container creation time (as UNIX timestamp)",
-                     "example": 1367854155 },
+                     "computed": True },
         "ID": { "description": "Container ID",
-                "example": "000000000000" },
-        "Image": { "description": "Tag of the image used by this container",
-                   "example": "ubuntu:latest" },
-        "Name": { "description": "Cotainer unique name",
+                "computed": True },
+        "Image_ID": { "description": "ID of the image used by this container",
+                      "computed": True,
+                      "example": "0123456..." },
+        "Image_Tag": { "description": "Tag of the image used by this container",
+                      "computed": True,
+                      "example": "jpetazzo/busybox:latest"},
+        "Name": { "description": "Container unique name",
+                   "editable": False,
                   "example": "/blue_whale42" },
         "Path": { "description": "Command executed by this container",
+                   "editable": False,
                      "example": "echo" },
         "State": { "description": "Indicates if the container is running/stopped",
-                    "example": "Exit 0" },
+                   "computed": True },
 
         "Ports": { "description": "Ports mapped for this container",
                    "example": [{"PrivatePort": 2222, "PublicPort": 3333, "Type": "tcp"}] },
         "SizeRw": { "description": "Size of the container modified filesystem state",
+                    "computed": True,
                     "example": 12288 },
         "SizeRootFs": { "description": "FIXME",
+                        "computed": True,
                         "example": 0 },
         }
 
@@ -70,7 +115,15 @@ class Containers_Running(Manager):
         return [c["Id"][:12] for c in dockerAPI.containers()]
 
     def get_resource(self, cid):
-        return dockerAPI.inspect_container(cid)
+        data = dockerAPI.inspect_container(cid)
+        data["Config"]["Env"] = ["SCRUBBED"]
+        print data
+        return data
+
+    def create_resource(self, data):
+        response = dockerAPI.create_container(**data)
+        # response["Warnings"]
+        return response["Id"]
 
 # Disabled for now (regression in Docker, this command is too slow!)
 #class Containers_All(Containers_Running):
@@ -105,6 +158,9 @@ class Images_Tagged(Manager):
     def get_resource(self, repo_tag_id):
         iid = repo_tag_id.split(":")[2]
         return dockerAPI.inspect_image(iid)
+
+    #@action
+    #def pull(self, 
 
 class Images_All(Images_Tagged):
 
